@@ -26,6 +26,13 @@ Example training call for conditional templates:
 python conditional_script.py --name phd-ours-cond --dataset pHD --oversample --nonorm_reg --clip --losswt_gp 5e-4 --gen_config ours
 ```
 
+### Training on custom data
+If you have custom data, first convert them into npz format (see below) and use the training script like so
+
+```bash
+python train_script.py --dataset my_dataset_name --fpath '/path/to/train/*.npz' --avg_path '/path/to/linearaverage.npz' 
+```
+
 CLI args are:
 ```bash
 usage: train_script.py [-h] [--epochs EPOCHS] [--batch_size BATCH_SIZE] 

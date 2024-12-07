@@ -114,7 +114,7 @@ parser.add_argument(
     '--nonorm_reg', dest='norm_reg', default=True, action='store_false',
 )
 parser.add_argument(
-    '--oversample', dest='oversample', default=True, action='store_false',
+    '--oversample', dest='oversample', default=False, action='store_true',
 )
 parser.add_argument(
     '--d_snout', dest='d_snout', default=False, action='store_true',
@@ -136,6 +136,11 @@ parser.add_argument('--g_ch', type=int, default=32)
 parser.add_argument('--d_ch', type=int, default=64)
 parser.add_argument('--init', type=str, default='default')
 parser.add_argument('--lazy_reg', type=int, default=1)
+
+# extra params for custom data
+parser.add_argument('--fpath', type=str, default=None)
+parser.add_argument('--avg_path', type=str, default=None)
+parser.add_argument('--n_condns', type=int, default=1)
 
 args = parser.parse_args()
 
@@ -210,14 +215,28 @@ elif dataset == 'pHD':
     avg_path = './data/predict-hd/linearaverageof100.npz'
     n_condns = 3
 
+# elif dataset == 'oasis':
+#     fpath = './data/oasis/train/*.npz'
+#     avg_path = './data/oasis/linearaverage.npz'
+#     n_condns = 1
+
 else:
-    raise ValueError('dataset expected to be dHCP or pHD')
+    fpath = args.fpath
+    avg_path = args.avg_path
+    n_condns = args.n_condns
+    if fpath is None or avg_path is None:
+        raise ValueError('Please provide fpath and avg_path for custom data.')
+    print("Using custom data with fpath: {}".format(fpath))
 
 
 img_paths = glob.glob(fpath)
 
+# use an element of the dataset to figure out the shape of the volume
+vol_shape = list(np.load(img_paths[0])['vol'].shape)
+
 Dtrain_data_generator = D_data_generator(
-    vol_shape=(160, 192, 160),
+    # vol_shape=(160, 192, 160),
+    vol_shape=vol_shape,
     img_list=img_paths,
     oversample_age=oversample,
     batch_size=batch_size,
@@ -225,14 +244,18 @@ Dtrain_data_generator = D_data_generator(
 )
 
 Gtrain_data_generator = G_data_generator(
-    vol_shape=(160, 192, 160),
+    # vol_shape=(160, 192, 160),
+    vol_shape=vol_shape,
     img_list=img_paths,
     oversample_age=oversample,
     batch_size=batch_size,
     dataset=dataset,
 )
 
-avg_img = np.load(avg_path)['arr_0']  # TODO: make generic fname in npz
+try:
+    avg_img = np.load(avg_path)['arr_0']  # TODO: make generic fname in npz
+except:
+    avg_img = np.load(avg_path)['vol']
 
 avg_batch = np.repeat(
     avg_img[np.newaxis, ...], batch_size, axis=0,
@@ -250,11 +273,13 @@ generator = Generator(
     clip_bckgnd=clip_bckgnd,
     initialization=init,
     n_condns=n_condns,
+    input_resolution=vol_shape + [1],
 )
 
 discriminator = Discriminator(
     ch=d_ch, conditional=conditional, sn_out=d_snout,
     initialization=init, n_condns=n_condns,
+    input_resolution=vol_shape + [1],
 )
 
 
@@ -537,7 +562,7 @@ def fit(epochs, disc_train_steps=1, gen_train_steps=1):
     """
     for epoch in range(epochs):
         start = time.time()
-        print("Epoch: ", epoch)
+        print("Starting Epoch: ", epoch)
 
         # Train
         for n in range(steps):

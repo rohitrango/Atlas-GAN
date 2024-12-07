@@ -1,7 +1,6 @@
 import numpy as np
 from tensorflow.keras.utils import to_categorical
 
-
 # ----------------------------------------------------------------------------
 # 3D Neuroimaging data generators
 
@@ -35,6 +34,10 @@ def D_data_generator(
         attribute = 'disease'  # name of attribute in npz archive
         age_max = 87.72895277  # used for scaling age values
         n_condns = 3  # number of conditions
+    else:
+        attribute = 'age'  # name of attribute in npz archive
+        age_max = 100
+        n_condns = 1
 
     # Oversample age:
     if oversample_age is True:
@@ -43,8 +46,8 @@ def D_data_generator(
         ifrequencies = None
 
     # prepare a zero array the size of the deformation:
-    registration_images = np.zeros((batch_size,) + vol_shape + (1,))
-    adversarial_images = np.zeros((batch_size,) + vol_shape + (1,))
+    registration_images = np.zeros((batch_size,) + tuple(vol_shape) + (1,))
+    adversarial_images = np.zeros((batch_size,) + tuple(vol_shape) + (1,))
 
     registration_images_condns = np.zeros((batch_size,) + (n_condns,))
     adversarial_images_condns = np.zeros((batch_size,) + (n_condns,))
@@ -127,6 +130,10 @@ def G_data_generator(
         attribute = 'disease'  # name of attribute in npz archive
         age_max = 87.72895277  # used for scaling age values
         n_condns = 3  # number of conditions
+    else:
+        attribute = 'age'
+        age_max = 100
+        n_condns = 1
 
     # Oversample age:
     if oversample_age is True:
@@ -135,7 +142,7 @@ def G_data_generator(
         ifrequencies = None
 
     # prepare a zero array the size of the deformation:
-    registration_images = np.zeros((batch_size,) + vol_shape + (1,))
+    registration_images = np.zeros((batch_size,) + tuple(vol_shape) + (1,))
     registration_images_condns = np.zeros((batch_size,) + (n_condns,))
 
     while True:
